@@ -1,7 +1,9 @@
 #include "controller_ae483.h"
 #include "stabilizer_types.h"
+#include "power_distribution.h"
 #include "log.h"
 #include "param.h"
+#include "num.h"
 #include "math3d.h"
 
 // Sensor measurements
@@ -57,11 +59,8 @@ void controllerAE483(control_t *control,
 
   }
 
-  // By default, we do nothing (set all control commands to zero)
-  control->thrust = 0.0f;
-  control->roll = 0.0f;
-  control->pitch = 0.0f;
-  control->yaw = 0.0f;
+  // By default, we do nothing (set all motor power commands to zero)
+  powerSet(0, 0, 0, 0);
 }
 
 //              1234567890123456789012345678 <-- max total length

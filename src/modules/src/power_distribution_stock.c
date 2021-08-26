@@ -130,6 +130,14 @@ void powerDistribution(const control_t *control)
   }
 }
 
+void powerSet(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4) {
+  motorSetEnable = true;
+  motorPowerSet.m1 = m1;
+  motorPowerSet.m2 = m2;
+  motorPowerSet.m3 = m3;
+  motorPowerSet.m4 = m4;
+}
+
 /**
  * Override power distribution to motors.
  */

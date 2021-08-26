@@ -33,5 +33,12 @@ bool powerDistributionTest(void);
 void powerDistribution(const control_t *control);
 void powerStop();
 
+// This function allows you to override the stock method of power distribution
+// and to set the power of each motor directly.
+//
+// Note that if you ever want to start using the stock method again, you will
+// need to set the parameter motorSetEnable back to false (it is set to true by
+// any call to this function).
+void powerSet(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4);
 
 #endif //__POWER_DISTRIBUTION_H__

@@ -94,6 +94,8 @@
 #define DEBUG_MODULE "ESTKALMAN"
 #include "debug.h"
 
+// Allows sending measurements to AE483 controller
+#include "controller_ae483.h"
 
 // #define KALMAN_USE_BARO_UPDATE
 
@@ -372,6 +374,7 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypeTOF:
+        ae483UpdateWithTOF(&m.data.tof);
         kalmanCoreUpdateWithTof(&coreData, &m.data.tof);
         doneUpdate = true;
         break;
@@ -380,6 +383,7 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypeFlow:
+        ae483UpdateWithFlow(&m.data.flow);
         kalmanCoreUpdateWithFlow(&coreData, &m.data.flow, &gyroLatest);
         doneUpdate = true;
         break;

@@ -74,4 +74,4 @@ LOG_GROUP_STOP(ae483log)
 //                group   .name
 PARAM_GROUP_START(ae483par)
 PARAM_ADD(PARAM_UINT8,     use_observer,            &use_observer)
-PARAM_GROUP_STOP(ae483conpar)
+PARAM_GROUP_STOP(ae483par)

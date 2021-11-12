@@ -364,6 +364,7 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypeDistance:
+        ae483UpdateWithDistance(&m.data.distance);
         if(robustTwr){
             // robust KF update with UWB TWR measurements
             kalmanCoreRobustUpdateWithDistance(&coreData, &m.data.distance);

@@ -12,6 +12,7 @@ void controllerAE483(control_t *control, setpoint_t *setpoint,
 
 void ae483UpdateWithTOF(tofMeasurement_t *tof);
 void ae483UpdateWithFlow(flowMeasurement_t *flow);
+void ae483UpdateWithDistance(distanceMeasurement_t *meas);
 
 
 #endif //__CONTROLLER_AE483_H__

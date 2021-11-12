@@ -32,6 +32,19 @@ void ae483UpdateWithFlow(flowMeasurement_t *flow)
   flow_count++;
 }
 
+void ae483UpdateWithDistance(distanceMeasurement_t *meas)
+{
+  // If you have a loco positioning deck, this function will be called
+  // each time a distance measurement is available. You will have to write
+  // code to handle these measurements. These data are available:
+  //
+  //  meas->anchorId  uint8_t   id of anchor with respect to which distance was measured
+  //  meas->x         float     x position of this anchor
+  //  meas->y         float     y position of this anchor
+  //  meas->z         float     z position of this anchor
+  //  meas->distance  float     the measured distance
+}
+
 void controllerAE483Init(void)
 {
   // Do nothing

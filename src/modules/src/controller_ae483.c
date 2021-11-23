@@ -18,7 +18,6 @@ static float flow_dpixely = 0.0f;
 // An example parameter
 static bool use_observer = false;
 
-
 void ae483UpdateWithTOF(tofMeasurement_t *tof)
 {
   tof_distance = tof->distance;
@@ -44,6 +43,20 @@ void ae483UpdateWithDistance(distanceMeasurement_t *meas)
   //  meas->z         float     z position of this anchor
   //  meas->distance  float     the measured distance
 }
+
+void ae483UpdateWithData(const struct AE483Data* data)
+{
+  // This function will be called each time AE483-specific data are sent
+  // from the client to the drone. You will have to write code to handle
+  // these data. For the example AE483Data struct, these data are:
+  //
+  //  data->x         float
+  //  data->y         float
+  //  data->z         float
+  //
+  // Exactly what "x", "y", and "z" mean in this context is up to you.
+}
+
 
 void controllerAE483Init(void)
 {

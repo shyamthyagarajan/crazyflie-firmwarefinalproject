@@ -18,13 +18,6 @@ static float flow_dpixely = 0.0f;
 // An example parameter
 static bool use_observer = false;
 
-static float x = 0.0f;
-static float y = 0.0f;
-static float z = 0.0f;
-static float qx = 0.0f;
-static float qy = 0.0f;
-static float qz = 0.0f;
-static float qw = 0.0f;
 
 void ae483UpdateWithTOF(tofMeasurement_t *tof)
 {

@@ -356,10 +356,12 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypePosition:
+        ae483UpdateWithPosition(&m.data.position);
         kalmanCoreUpdateWithPosition(&coreData, &m.data.position);
         doneUpdate = true;
         break;
       case MeasurementTypePose:
+        ae483UpdateWithPose(&m.data.pose);
         kalmanCoreUpdateWithPose(&coreData, &m.data.pose);
         doneUpdate = true;
         break;

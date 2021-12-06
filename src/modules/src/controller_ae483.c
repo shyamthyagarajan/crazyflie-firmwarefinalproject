@@ -62,10 +62,6 @@ void ae483UpdateWithPosition(positionMeasurement_t *meas)
   //  meas->x         float     x component of external position measurement
   //  meas->y         float     y component of external position measurement
   //  meas->z         float     z component of external position measurement
-
-  x = meas->x;
-  y = meas->y;
-  z = meas->z;
 }
 
 void ae483UpdateWithPose(poseMeasurement_t *meas)
@@ -82,14 +78,6 @@ void ae483UpdateWithPose(poseMeasurement_t *meas)
   //  meas->quat.y    float     y component of quaternion from external orientation measurement
   //  meas->quat.z    float     z component of quaternion from external orientation measurement
   //  meas->quat.w    float     w component of quaternion from external orientation measurement
-
-  x = meas->x;
-  y = meas->y;
-  z = meas->z;
-  qx = meas->quat.x;
-  qy = meas->quat.y;
-  qz = meas->quat.z;
-  qw = meas->quat.w;
 }
 
 void ae483UpdateWithData(const struct AE483Data* data)
@@ -142,13 +130,6 @@ void controllerAE483(control_t *control,
 LOG_GROUP_START(ae483log)
 LOG_ADD(LOG_UINT16,         num_tof,                &tof_count)
 LOG_ADD(LOG_UINT16,         num_flow,               &flow_count)
-LOG_ADD(LOG_FLOAT,          x,                      &x)
-LOG_ADD(LOG_FLOAT,          y,                      &y)
-LOG_ADD(LOG_FLOAT,          z,                      &z)
-LOG_ADD(LOG_FLOAT,          qx,                     &qx)
-LOG_ADD(LOG_FLOAT,          qy,                     &qy)
-LOG_ADD(LOG_FLOAT,          qz,                     &qz)
-LOG_ADD(LOG_FLOAT,          qw,                     &qw)
 LOG_GROUP_STOP(ae483log)
 
 //                1234567890123456789012345678 <-- max total length

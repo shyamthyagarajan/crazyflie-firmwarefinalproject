@@ -35,6 +35,7 @@
 #include "timers.h"
 
 #include "config.h"
+#include "debug.h"
 #include "param.h"
 #include "log.h"
 #include "sound.h"
@@ -330,6 +331,11 @@ static void soundTimer(xTimerHandle timer)
     effect = user_effect;
   }
 
+  if (effect > neffect) {
+    DEBUG_PRINT("Bad value for effect (> neffect)\n");
+    effect = SND_OFF;
+  }
+
   if (effects[effect].call != 0) {
     effects[effect].call(counter * 10, &effects[effect].mi, effects[effect].melody);
   }
@@ -364,15 +370,7 @@ void soundSetFreq(uint32_t freq) {
 }
 
 /**
- * @brief The buzzer deck contains a low profile piezo buzzer.
- *
- * With the Buzzer deck  you’ll get audio feedback on system events, like low
- * battery or charging completed. Or why not create your own melodies that will
- * play while you’re buzzing around. If you’re tapped out on creativity there
- * are already a few melodies pre-programmed that you can use.
- *
- * Changing the sounds requires modifications to the firmware. The code for the
- * sounds is located in [sound_cf.c](%https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/sound_cf2.c)
+ * The buzzer deck contains a low profile piezo buzzer.
  */
 PARAM_GROUP_START(sound)
 
@@ -396,15 +394,15 @@ PARAM_GROUP_START(sound)
  * | 12 | Siren                     | \n
  * | 13 | Tilt quad to play sound   | \n
  */
-PARAM_ADD_CORE(PARAM_UINT8, effect, &user_effect)
+PARAM_ADD_CORE(PARAM_UINT8 | PARAM_PERSISTENT, effect, &user_effect)
 
 /**
- * @brief Number of effects available (default: 13)
+ * @brief Number of effects available
  */
 PARAM_ADD_CORE(PARAM_UINT32 | PARAM_RONLY, neffect, &neffect)
 
 /**
- * @brief Frequency to use for Bypass effect (default: 4000)
+ * @brief Frequency to use for Bypass effect
  */
 PARAM_ADD_CORE(PARAM_UINT16, freq, &static_freq)
 

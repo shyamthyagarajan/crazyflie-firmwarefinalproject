@@ -151,6 +151,11 @@ static bool quadIsFlying = false;
 
 static OutlierFilterLhState_t sweepOutlierFilterState;
 
+// Indicates that the internal state is corrupt and should be reset
+bool resetEstimation = false;
+
+static kalmanCoreParams_t coreParams;
+
 // Data used to enable the task and stabilizer loop to run with minimal locking
 static state_t taskEstimatorState; // The estimator state produced by the task, copied to the stabilzer when needed.
 
@@ -183,6 +188,8 @@ STATIC_MEM_TASK_ALLOC_STACK_NO_DMA_CCM_SAFE(kalmanTask, 3 * configMINIMAL_STACK_
 
 // Called one time during system startup
 void estimatorKalmanTaskInit() {
+  kalmanCoreDefaultParams(&coreParams);
+
   vSemaphoreCreateBinary(runTaskSemaphore);
 
   dataMutex = xSemaphoreCreateMutexStatic(&dataMutexBuffer);
@@ -209,7 +216,7 @@ static void kalmanTask(void* parameters) {
     xSemaphoreTake(runTaskSemaphore, portMAX_DELAY);
 
     // If the client triggers an estimator reset via parameter update
-    if (coreData.resetEstimation) {
+    if (resetEstimation) {
       estimatorKalmanInit();
       paramSetInt(paramGetVarId("kalman", "resetEstimation"), 0);
     }
@@ -245,7 +252,7 @@ static void kalmanTask(void* parameters) {
     {
       float dt = T2S(osTick - lastPNUpdate);
       if (dt > 0.0f) {
-        kalmanCoreAddProcessNoise(&coreData, dt);
+        kalmanCoreAddProcessNoise(&coreData, &coreParams, dt);
         lastPNUpdate = osTick;
       }
     }
@@ -268,7 +275,7 @@ static void kalmanTask(void* parameters) {
       kalmanCoreFinalize(&coreData, osTick);
       STATS_CNT_RATE_EVENT(&finalizeCounter);
       if (! kalmanSupervisorIsStateWithinBounds(&coreData)) {
-        coreData.resetEstimation = true;
+        resetEstimation = true;
 
         if (osTick > warningBlockTime) {
           warningBlockTime = osTick + WARNING_HOLD_BACK_TIME;
@@ -414,7 +421,7 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         break;
       case MeasurementTypeBarometer:
         if (useBaroUpdate) {
-          kalmanCoreUpdateWithBaro(&coreData, m.data.barometer.baro.asl, quadIsFlying);
+          kalmanCoreUpdateWithBaro(&coreData, &coreParams, m.data.barometer.baro.asl, quadIsFlying);
           doneUpdate = true;
         }
         break;
@@ -436,7 +443,7 @@ void estimatorKalmanInit(void)
   gyroAccumulatorCount = 0;
   outlierFilterReset(&sweepOutlierFilterState, 0);
 
-  kalmanCoreInit(&coreData);
+  kalmanCoreInit(&coreData, &coreParams);
 }
 
 bool estimatorKalmanTest(void)
@@ -466,37 +473,37 @@ LOG_GROUP_START(kalman)
   LOG_ADD(LOG_UINT8, inFlight, &quadIsFlying)
   /**
  * @brief State position in the global frame x
- * 
+ *
  *   Note: This is similar to stateEstimate.x.
  */
   LOG_ADD(LOG_FLOAT, stateX, &coreData.S[KC_STATE_X])
  /**
  * @brief State position in the global frame y
- * 
+ *
  *  Note: This is similar to stateEstimate.y
  */
   LOG_ADD(LOG_FLOAT, stateY, &coreData.S[KC_STATE_Y])
  /**
  * @brief State position in the global frame z
- * 
+ *
  *  Note: This is similar to stateEstimate.z
  */
   LOG_ADD(LOG_FLOAT, stateZ, &coreData.S[KC_STATE_Z])
   /**
  * @brief State position in the global frame PX
- * 
+ *
  *  Note: This is similar to stateEstimate.x
  */
   LOG_ADD(LOG_FLOAT, statePX, &coreData.S[KC_STATE_PX])
   /**
   * @brief State velocity in its body frame y
-  * 
+  *
   *  Note: This should be part of stateEstimate
   */
   LOG_ADD(LOG_FLOAT, statePY, &coreData.S[KC_STATE_PY])
   /**
   * @brief State velocity in its body frame z
-  * 
+  *
   *  Note: This should be part of stateEstimate
   */
   LOG_ADD(LOG_FLOAT, statePZ, &coreData.S[KC_STATE_PZ])
@@ -590,7 +597,7 @@ PARAM_GROUP_START(kalman)
 /**
  * @brief Reset the kalman estimator
  */
-  PARAM_ADD_CORE(PARAM_UINT8, resetEstimation, &coreData.resetEstimation)
+  PARAM_ADD_CORE(PARAM_UINT8, resetEstimation, &resetEstimation)
   PARAM_ADD(PARAM_UINT8, quadIsFlying, &quadIsFlying)
 /**
  * @brief Nonzero to use robust TDOA method (default: 0)
@@ -600,4 +607,52 @@ PARAM_GROUP_START(kalman)
  * @brief Nonzero to use robust TWR method (default: 0)
  */
   PARAM_ADD_CORE(PARAM_UINT8, robustTwr, &robustTwr)
+/**
+ * @brief Process noise for x and y acceleration
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, pNAcc_xy, &coreParams.procNoiseAcc_xy)
+/**
+ * @brief Process noise for z acceleration
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, pNAcc_z, &coreParams.procNoiseAcc_z)
+  /**
+ * @brief Process noise for velocity
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, pNVel, &coreParams.procNoiseVel)
+  /**
+ * @brief Process noise for position
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, pNPos, &coreParams.procNoisePos)
+  /**
+ * @brief Process noise for attitude
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, pNAtt, &coreParams.procNoiseAtt)
+  /**
+ * @brief Measurement noise for barometer
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, mNBaro, &coreParams.measNoiseBaro)
+  /**
+ * @brief Measurement noise for roll/pitch gyros
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, mNGyro_rollpitch, &coreParams.measNoiseGyro_rollpitch)
+  /**
+ * @brief Measurement noise for yaw gyro
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, mNGyro_yaw, &coreParams.measNoiseGyro_yaw)
+  /**
+ * @brief Initial X after reset [m]
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT, initialX, &coreParams.initialX)
+  /**
+ * @brief Initial Y after reset [m]
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT, initialY, &coreParams.initialY)
+  /**
+ * @brief Initial Z after reset [m]
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT, initialZ, &coreParams.initialZ)
+  /**
+ * @brief Initial yaw after reset [rad]
+ */
+  PARAM_ADD_CORE(PARAM_FLOAT, initialYaw, &coreParams.initialYaw)
 PARAM_GROUP_STOP(kalman)

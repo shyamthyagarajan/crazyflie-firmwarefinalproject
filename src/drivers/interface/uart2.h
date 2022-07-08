@@ -28,8 +28,9 @@
 
 #include <stdbool.h>
 #include "eprintf.h"
+#include "autoconf.h"
 
-#ifdef UART2_LINK_COMM
+#ifdef CONFIG_CRTP_OVER_UART2
 #include "syslink.h"
 #endif
 
@@ -41,6 +42,7 @@
 #define ENABLE_UART2_RCC       RCC_APB1PeriphClockCmd
 #define UART2_IRQ              USART2_IRQn
 
+#define UART2_DMA_BUFFER_SIZE 128
 #define UART2_DMA_IRQ           DMA1_Stream6_IRQn
 #define UART2_DMA_IT_TC         DMA_IT_TC4
 #define UART2_DMA_STREAM        DMA1_Stream6
@@ -55,6 +57,8 @@
 #define UART2_GPIO_AF_RX_PIN   GPIO_PinSource3
 #define UART2_GPIO_AF_TX       GPIO_AF_USART2
 #define UART2_GPIO_AF_RX       GPIO_AF_USART2
+
+#define UART2_RX_QUEUE_LENGTH 128
 
 /**
  * Initialize the UART.
@@ -92,7 +96,7 @@ void uart2SendDataDmaBlocking(uint32_t size, uint8_t* data);
  */
 int uart2Putchar(int ch);
 
-#ifdef UART2_LINK_COMM
+#ifdef CONFIG_CRTP_OVER_UART2
 
 /**
  * Get data from rx queue. Blocks until data is available.
@@ -100,7 +104,7 @@ int uart2Putchar(int ch);
  */
 void uart2GetPacketBlocking(SyslinkPacket* slp);
 
-#else
+#endif
 
 /**
  * Read a byte of data from incoming queue with a timeout
@@ -126,8 +130,6 @@ void uart2Getchar(char * ch);
  * @return true if an overrun condition has happened
  */
 bool uart2DidOverrun();
-
-#endif
 
 /**
  * Uart printf macro that uses eprintf

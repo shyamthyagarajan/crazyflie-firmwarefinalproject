@@ -7,14 +7,15 @@ import os
 # Make sure there are XML docs to parse! check the readme
 
 
-def create_log_markdown(xml_dir, api_doc_dir):
+
+def create_log_markdown(xml_dir, api_doc_dir, file_name):
     log_groups = parse_xml('logs', xml_dir)
-    create_markdown('logs', log_groups, api_doc_dir)
+    create_markdown(file_name, log_groups, api_doc_dir)
 
 
-def create_param_markdown(xml_dir, api_doc_dir):
+def create_param_markdown(xml_dir, api_doc_dir, file_name):
     param_groups = parse_xml('params', xml_dir)
-    create_markdown('params', param_groups, api_doc_dir)
+    create_markdown(file_name, param_groups, api_doc_dir)
 
 
 def read_and_parse_xml(file_name):
@@ -26,13 +27,22 @@ def read_and_parse_xml(file_name):
 
 def pre_process_xml(xml):
     # The xml we get from doxygen contains some un-orthodox elements that we handle before we parse the xml
-    if xml.find('<itemizedlist>') != -1:
-        raise ValueError("The xml contains <itemizedlist> which is not supported in log/param documentation. It is probably caused by a list created using '-'.")
-    if xml.find('<ulink') != -1:
-        raise ValueError("The xml contains <ulink> which is not supported in log/param documentation. It is probably caused by a link, prepend the URL with '%'.")
+    itemized_result = xml.find('<itemizedlist>')
+    if itemized_result != -1:
+        related_text = extract_related_text(xml, itemized_result, 50, 100)
+        raise ValueError("The xml contains <itemizedlist> which is not supported in log/param documentation. It is probably caused by a list created using '-'. Excerpt: >>>" + related_text + "<<<")
+
+    ulink_result = xml.find('<ulink')
+    if ulink_result != -1:
+        related_text = extract_related_text(xml, ulink_result, 50, 100)
+        raise ValueError("The xml contains <ulink> which is not supported in log/param documentation. It is probably caused by a link, please prepend the URL with '%'. Excerpt: >>>" + related_text + "<<<")
 
     return xml.replace('<linebreak/>', "")
 
+def extract_related_text(xml, position, pre, post):
+    start = max(0, position - pre)
+    end = position + post
+    return xml[start:end]
 
 def merge_paras(paras, separator):
     parts = []
@@ -113,7 +123,8 @@ def extract_memberdefs(root, core_string):
         brief_description = get_brief_description(memberdef)
         detaild_description = get_detailed_description(memberdef)
 
-        type_variable = memberdef.find('type/ref').text
+        type_refs_texts = map(lambda type_ref: type_ref.text, memberdef.findall('type/ref'))
+        type_variable = ", ".join(type_refs_texts)
 
         # location and line
         location = memberdef.find('location')
@@ -127,21 +138,9 @@ def extract_memberdefs(root, core_string):
     return info_variables
 
 
-def create_markdown(doc_type, groups_info_storage, api_doc_dir):
-    markdown_file_name = os.path.join(api_doc_dir, doc_type + '.md')
-    f = open(markdown_file_name, 'w')
-
-    f.write('---\n')
-    if doc_type == 'logs':
-        f.write('title: Logging groups and variables\n')
-    elif doc_type == 'params':
-        f.write('title: Parameter groups and variables\n')
-    else:
-        print('group type does not exist!')
-        return None
-
-    f.write('page_id: ' + doc_type + '\n')
-    f.write('---\n')
+def create_markdown(file_name, groups_info_storage, api_doc_dir):
+    full_path = os.path.join(api_doc_dir, file_name)
+    f = open(full_path, 'w')
 
     f.write('## Index\n\n')
     first_letter = ''
@@ -243,16 +242,19 @@ def create_json(xml_dir: str, api_doc_dir: str):
 
 if __name__ == '__main__':
 
-    if(len(sys.argv) != 3):
-        raise ValueError("Need two arguments!")
+    if(len(sys.argv) != 5):
+        raise ValueError("Need four arguments!")
 
     xml_dir = sys.argv[1]
     api_doc_dir = sys.argv[2]
+    logs_md_file_name = sys.argv[3]
+    params_md_file_name = sys.argv[4]
 
     print('Create Logging API Markdown files')
-    create_log_markdown(xml_dir, api_doc_dir)
+    create_log_markdown(xml_dir, api_doc_dir, logs_md_file_name)
     print('Create Parameter API Markdown files')
-    create_param_markdown(xml_dir, api_doc_dir)
+    create_param_markdown(xml_dir, api_doc_dir, params_md_file_name)
 
     print('Create JSON file')
+    # Note: The json file is used by the python client build
     create_json(xml_dir, api_doc_dir)

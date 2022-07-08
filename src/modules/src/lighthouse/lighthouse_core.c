@@ -37,6 +37,7 @@
 #include "log.h"
 #include "param.h"
 #include "statsCnt.h"
+#include "autoconf.h"
 
 #define DEBUG_MODULE "LH"
 #include "debug.h"
@@ -83,8 +84,10 @@ static STATS_CNT_RATE_DEFINE(cycleRate, ONE_SECOND);
 
 static STATS_CNT_RATE_DEFINE(bs0Rate, HALF_SECOND);
 static STATS_CNT_RATE_DEFINE(bs1Rate, HALF_SECOND);
-static statsCntRateLogger_t* bsRates[PULSE_PROCESSOR_N_BASE_STATIONS] = {&bs0Rate, &bs1Rate};
+static statsCntRateLogger_t* bsRates[CONFIG_DECK_LIGHTHOUSE_MAX_N_BS] = {&bs0Rate, &bs1Rate};
 
+// A bitmap that indicates which base stations that are available
+static uint16_t baseStationAvailabledMap;
 
 // A bitmap that indicates which base staions that are received
 static uint16_t baseStationReceivedMapWs;
@@ -136,6 +139,10 @@ static void modifyBit(uint16_t *bitmap, const int index, const bool value) {
 void lighthouseCoreInit() {
   lighthouseStorageInitializeSystemTypeFromStorage();
   lighthousePositionEstInit();
+
+  for (int i = 0; i < CONFIG_DECK_LIGHTHOUSE_MAX_N_BS; i++) {
+    modifyBit(&baseStationAvailabledMap, i, true);
+  }
 }
 
 void lighthouseCoreLedTimer()
@@ -209,7 +216,7 @@ TESTABLE_STATIC bool getUartFrameRaw(lighthouseUartFrame_t *frame) {
 
   for(int i = 0; i < UART_FRAME_LENGTH; i++) {
     while(!uart1GetDataWithTimeout((uint8_t*)&data[i], 2)) {
-      lighthouseTransmitProcessTimeout();      
+      lighthouseTransmitProcessTimeout();
     }
     if ((unsigned char)data[i] == 0xff) {
       syncCounter += 1;
@@ -273,7 +280,7 @@ void lighthouseCoreSetLeds(lighthouseCoreLedState_t red, lighthouseCoreLedState_
 //     estimator as pre-calculated.
 // 1 = Sweep angles pushed into the estimator. Yaw error calculated outside the estimator
 //     and pushed to the estimator as a pre-calculated value.
-#ifdef LIGHTHOUSE_AS_GROUNDTRUTH
+#ifdef CONFIG_DECK_LIGHTHOUSE_AS_GROUNDTRUTH
 static uint8_t estimationMethod = 0;
 #else
 static uint8_t estimationMethod = 1;
@@ -306,7 +313,7 @@ static void usePulseResultSweeps(pulseProcessor_t *appState, pulseProcessorResul
 
 static void convertV2AnglesToV1Angles(pulseProcessorResult_t* angles) {
   for (int sensor = 0; sensor < PULSE_PROCESSOR_N_SENSORS; sensor++) {
-    for (int bs = 0; bs < PULSE_PROCESSOR_N_BASE_STATIONS; bs++) {
+    for (int bs = 0; bs < CONFIG_DECK_LIGHTHOUSE_MAX_N_BS; bs++) {
       pulseProcessorBaseStationMeasuremnt_t* from = &angles->sensorMeasurementsLh2[sensor].baseStatonMeasurements[bs];
       pulseProcessorBaseStationMeasuremnt_t* to = &angles->sensorMeasurementsLh1[sensor].baseStatonMeasurements[bs];
 
@@ -361,7 +368,7 @@ static void usePulseResult(pulseProcessor_t *appState, pulseProcessorResult_t* a
 }
 
 static void useCalibrationData(pulseProcessor_t *appState) {
-  for (int baseStation = 0; baseStation < PULSE_PROCESSOR_N_BASE_STATIONS; baseStation++) {
+  for (int baseStation = 0; baseStation < CONFIG_DECK_LIGHTHOUSE_MAX_N_BS; baseStation++) {
     if (appState->ootxDecoder[baseStation].isFullyDecoded) {
       lighthouseCalibration_t newData;
       lighthouseCalibrationInitFromFrame(&newData, &appState->ootxDecoder[baseStation].frame);
@@ -487,7 +494,7 @@ void lighthouseCoreTask(void *param) {
       else if(!frame.isSyncFrame) {
         STATS_CNT_RATE_EVENT(&frameRate);
 	lighthouseTransmitProcessFrame(&frame);
-	
+
         deckHealthCheck(&lighthouseCoreState, &frame, now_ms);
         lighthouseUpdateSystemType();
         if (pulseProcessorProcessPulse) {
@@ -505,7 +512,7 @@ void lighthouseCoreTask(void *param) {
 }
 
 void lighthouseCoreSetCalibrationData(const uint8_t baseStation, const lighthouseCalibration_t* calibration) {
-  if (baseStation < PULSE_PROCESSOR_N_BASE_STATIONS) {
+  if (baseStation < CONFIG_DECK_LIGHTHOUSE_MAX_N_BS) {
     lighthouseCoreState.bsCalibration[baseStation] = *calibration;
     lighthousePositionCalibrationDataWritten(baseStation);
   }
@@ -773,7 +780,7 @@ LOG_ADD(LOG_UINT8, comSync, &uartSynchronized)
 /**
  * @brief Bit field indicating which base stations that are received by the lighthouse deck
  *
- * The lowest bit mapps to base station channel 1 and the highest to channel 16.
+ * The lowest bit maps to base station channel 1 and the highest to channel 16.
  */
 LOG_ADD_CORE(LOG_UINT16, bsReceive, &baseStationReceivedMap)
 
@@ -782,21 +789,21 @@ LOG_ADD_CORE(LOG_UINT16, bsReceive, &baseStationReceivedMap)
  *
  * A bit will be set if there is calibration and geometry data for the base station, and sweeps are received.
  *
- * The lowest bit mapps to base station channel 1 and the highest to channel 16.
+ * The lowest bit maps to base station channel 1 and the highest to channel 16.
  */
 LOG_ADD_CORE(LOG_UINT16, bsActive, &baseStationActiveMap)
 
 /**
  * @brief Bit field that indicates which base stations that have received calibration data that was different to what was stored in memory
  *
- * The lowest bit mapps to base station channel 1 and the highest to channel 16.
+ * The lowest bit maps to base station channel 1 and the highest to channel 16.
  */
 LOG_ADD_CORE(LOG_UINT16, bsCalUd, &baseStationCalibUpdatedMap)
 
 /**
  * @brief Bit field that indicates which base stations that have received calibration data over the air
  *
- * The lowest bit mapps to base station channel 1 and the highest to channel 16.
+ * The lowest bit maps to base station channel 1 and the highest to channel 16.
  */
 LOG_ADD_CORE(LOG_UINT16, bsCalCon, &baseStationCalibConfirmedMap)
 
@@ -830,4 +837,12 @@ PARAM_ADD_CORE(PARAM_UINT8, bsCalibReset, &calibStatusReset)
  *  (default: 2)
  */
 PARAM_ADD_CORE(PARAM_UINT8, systemType, &systemType)
+
+/**
+ * @brief Bit field that indicates which base stations that are supported by the system
+ *
+ * The lowest bit maps to base station channel 1 and the highest to channel 16.
+ */
+PARAM_ADD_CORE(PARAM_UINT16 | PARAM_RONLY, bsAvailable, &baseStationAvailabledMap)
+
 PARAM_GROUP_STOP(lighthouse)

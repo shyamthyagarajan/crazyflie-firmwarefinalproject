@@ -28,11 +28,6 @@
 
 #include "stabilizer_types.h"
 
-void powerDistributionInit(void);
-bool powerDistributionTest(void);
-void powerDistribution(const control_t *control);
-void powerStop();
-
 // This function allows you to override the stock method of power distribution
 // and to set the power of each motor directly.
 //
@@ -40,5 +35,9 @@ void powerStop();
 // need to set the parameter motorSetEnable back to false (it is set to true by
 // any call to this function).
 void powerSet(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4);
+
+void powerDistributionInit(void);
+bool powerDistributionTest(void);
+void powerDistribution(motors_thrust_t* motorPower, const control_t *control);
 
 #endif //__POWER_DISTRIBUTION_H__

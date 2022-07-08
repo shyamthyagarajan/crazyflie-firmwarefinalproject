@@ -38,7 +38,11 @@
 #include "stabilizer.h"
 #include "configblock.h"
 #include "worker.h"
+#include "autoconf.h"
+
+#ifdef CONFIG_DECK_LIGHTHOUSE
 #include "lighthouse_storage.h"
+#endif
 
 #include "locodeck.h"
 
@@ -48,6 +52,7 @@
 #include "peer_localization.h"
 
 #include "num.h"
+
 
 #define NBR_OF_RANGES_IN_PACKET   5
 #define NBR_OF_SWEEPS_IN_PACKET   2
@@ -110,7 +115,9 @@ static CRTPPacket pkRange;
 static uint8_t rangeIndex;
 static bool enableRangeStreamFloat = false;
 
+#ifdef CONFIG_DECK_LIGHTHOUSE
 static CRTPPacket LhAngle;
+#endif
 static bool enableLighthouseAngleStream = false;
 static float extPosStdDev = 0.01;
 static float extQuatStdDev = 4.5e-3;
@@ -217,8 +224,11 @@ static void extPosePackedHandler(const CRTPPacket* pk) {
 
 static void lpsShortLppPacketHandler(CRTPPacket* pk) {
   if (pk->size >= 2) {
+#ifdef CONFIG_DECK_LOCO
     bool success = lpsSendLppShort(pk->data[1], &pk->data[2], pk->size-2);
-
+#else
+    bool success = false;
+#endif
     pk->port = CRTP_PORT_LOCALIZATION;
     pk->channel = GENERIC_TYPE;
     pk->size = 3;
@@ -240,11 +250,12 @@ typedef union {
 } __attribute__((packed)) LhPersistArgs_t;
 
 static void lhPersistDataWorker(void* arg) {
+#ifdef CONFIG_DECK_LIGHTHOUSE
   LhPersistArgs_t* args = (LhPersistArgs_t*) &arg;
 
   bool result = true;
 
-  for (int baseStation = 0; baseStation < PULSE_PROCESSOR_N_BASE_STATIONS; baseStation++) {
+  for (int baseStation = 0; baseStation < CONFIG_DECK_LIGHTHOUSE_MAX_N_BS; baseStation++) {
     uint16_t mask = 1 << baseStation;
     bool storeGeo = (args->geoDataBsField & mask) != 0;
     bool storeCalibration = (args->calibrationDataBsField & mask) != 0;
@@ -253,7 +264,9 @@ static void lhPersistDataWorker(void* arg) {
       break;
     }
   }
-
+#else
+  bool result = false;
+#endif
   CRTPPacket response = {
     .port = CRTP_PORT_LOCALIZATION,
     .channel = GENERIC_TYPE,
@@ -347,6 +360,7 @@ void locSrvSendRangeFloat(uint8_t id, float range)
   }
 }
 
+#ifdef CONFIG_DECK_LIGHTHOUSE
 void locSrvSendLighthouseAngle(int basestation, pulseProcessorResult_t* angles)
 {
   anglePacket *ap = (anglePacket *)LhAngle.data;
@@ -373,6 +387,7 @@ void locSrvSendLighthouseAngle(int basestation, pulseProcessorResult_t* angles)
     crtpSendPacket(&LhAngle);
   }
 }
+#endif
 
 // This logging group is deprecated
 LOG_GROUP_START(ext_pos)
@@ -383,45 +398,45 @@ LOG_GROUP_STOP(ext_pos)
 
 /**
  * Logging variables for (external) positioning data stream through ctrp
- */ 
+ */
 LOG_GROUP_START(locSrv)
 /**
- * @brief Position X measurement from external system 
- */ 
+ * @brief Position X measurement from external system
+ */
   LOG_ADD_CORE(LOG_FLOAT, x, &ext_pose.x)
 /**
- * @brief Position Y measurement from external system 
- */ 
+ * @brief Position Y measurement from external system
+ */
   LOG_ADD_CORE(LOG_FLOAT, y, &ext_pose.y)
 /**
  * @brief Position Z measurement from external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, z, &ext_pose.z)
 /**
  * @brief Quaternion x meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qx, &ext_pose.quat.x)
 /**
  * @brief Quaternion y meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qy, &ext_pose.quat.y)
 /**
  * @brief Quaternion z meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qz, &ext_pose.quat.z)
 /**
  * @brief Quaternion w meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qw, &ext_pose.quat.w)
 LOG_GROUP_STOP(locSrv)
 
 /**
  * Logging variables for (external) positioning data stream through Compressed
- */ 
+ */
 LOG_GROUP_START(locSrvZ)
 /**
  * @brief time when data was received last (ms/ticks)
- */ 
+ */
   LOG_ADD_CORE(LOG_UINT16, tick, &tickOfLastPacket)  // time when data was received last (ms/ticks)
 LOG_GROUP_STOP(locSrvZ)
 

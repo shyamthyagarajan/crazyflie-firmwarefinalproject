@@ -1,4 +1,6 @@
 ---
+kconfig:
+  config_file: 'build/.config'
 compiler:
   path: gcc
   source_path:     &source_path 'src/'
@@ -15,6 +17,7 @@ compiler:
     - '-std=c11'
     - '-pedantic'
     - '-O0'
+    - '-g3'
     - '-fsanitize=address'
     - '-fno-omit-frame-pointer'
   includes:
@@ -23,6 +26,7 @@ compiler:
       - *source_path
       - *unit_tests_path
       - *mocks_path
+      - 'build/include/generated'
       - 'src/config'
       - 'src/deck/drivers/interface/'
       - 'src/deck/drivers/src/'
@@ -38,6 +42,8 @@ compiler:
       - 'src/config/'
       - 'src/drivers/interface/'
       - 'src/drivers/src'
+      - 'src/drivers/esp32/interface/'
+      - 'src/drivers/esp32/src/'
       - 'src/hal/interface/'
       - 'src/lib/CMSIS/STM32F4xx/Include'
       - 'src/lib/STM32F4xx_StdPeriph_Driver/inc'
@@ -47,7 +53,8 @@ compiler:
       - 'src/modules/src/'
       - 'src/modules/src/kalman_core/'
       - 'src/modules/src/lighthouse/'
-      - 'src/platform/'
+      - 'src/platform/interface/'
+      - 'src/platform/src/'
       - 'src/utils/interface/'
       - 'src/utils/interface/lighthouse/'
       - 'src/utils/interface/tdoa'

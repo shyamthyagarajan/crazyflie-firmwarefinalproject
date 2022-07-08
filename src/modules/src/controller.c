@@ -8,6 +8,8 @@
 #include "controller_indi.h"
 #include "controller_ae483.h"
 
+#include "autoconf.h"
+
 #define DEFAULT_CONTROLLER ControllerTypePID
 static ControllerType currentController = ControllerTypeAny;
 
@@ -40,7 +42,17 @@ void controllerInit(ControllerType controller) {
     currentController = DEFAULT_CONTROLLER;
   }
 
-  ControllerType forcedController = CONTROLLER_NAME;
+  #if defined(CONFIG_CONTROLLER_PID)
+    #define CONTROLLER ControllerTypePID
+  #elif defined(CONFIG_CONTROLLER_INDI)
+    #define CONTROLLER ControllerTypeINDI
+  #elif defined(CONFIG_CONTROLLER_MELLINGER)
+    #define CONTROLLER ControllerTypeMellinger
+  #else
+    #define CONTROLLER ControllerTypeAny
+  #endif
+
+  ControllerType forcedController = CONTROLLER;
   if (forcedController != ControllerTypeAny) {
     DEBUG_PRINT("Controller type forced\n");
     currentController = forcedController;

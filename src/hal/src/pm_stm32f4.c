@@ -36,11 +36,19 @@
 #include "pm.h"
 #include "led.h"
 #include "log.h"
+#include "param.h"
 #include "ledseq.h"
 #include "commander.h"
 #include "sound.h"
 #include "deck.h"
 #include "static_mem.h"
+#include "worker.h"
+#include "platform_defaults.h"
+
+// Battery time limit conversions to ticks
+#define PM_BAT_CRITICAL_LOW_TIMEOUT   M2T(1000 * DEFAULT_BAT_LOW_DURATION_TO_TRIGGER_SEC)
+#define PM_BAT_LOW_TIMEOUT            M2T(1000 * DEFAULT_BAT_LOW_DURATION_TO_TRIGGER_SEC)
+#define PM_SYSTEM_SHUTDOWN_TIMEOUT    M2T(1000 * 60 * DEFAULT_SYSTEM_SHUTDOWN_TIMEOUT_MIN)
 
 typedef struct _PmSyslinkInfo
 {
@@ -76,6 +84,11 @@ static deckPin_t extBatCurrDeckPin;
 static bool      isExtBatCurrDeckPinSet = false;
 static float     extBatCurrAmpPerVolt;
 
+// Limits
+static float     batteryCriticalLowVoltage = DEFAULT_BAT_CRITICAL_LOW_VOLTAGE;
+static float     batteryLowVoltage = DEFAULT_BAT_LOW_VOLTAGE;
+
+
 #ifdef PM_SYSTLINK_INLCUDE_TEMP
 // nRF51 internal temp
 static float    temp;
@@ -91,7 +104,7 @@ static uint8_t batteryLevel;
 
 static void pmSetBatteryVoltage(float voltage);
 
-const static float bat671723HS25C[10] =
+const static float LiPoTypicalChargeCurve[10] =
 {
   3.00, // 00%
   3.78, // 10%
@@ -148,12 +161,8 @@ static void pmSetBatteryVoltage(float voltage)
  */
 static void pmSystemShutdown(void)
 {
-#ifdef ACTIVATE_AUTO_SHUTDOWN
-  SyslinkPacket slp;
-
-  slp.type = SYSLINK_PM_ONOFF_SWITCHOFF;
-  slp.length = 0;
-  syslinkSendPacket(&slp);
+#ifdef CONFIG_PM_AUTO_SHUTDOWN
+  systemRequestShutdown();
 #endif
 }
 
@@ -165,15 +174,15 @@ static int32_t pmBatteryChargeFromVoltage(float voltage)
 {
   int charge = 0;
 
-  if (voltage < bat671723HS25C[0])
+  if (voltage < LiPoTypicalChargeCurve[0])
   {
     return 0;
   }
-  if (voltage > bat671723HS25C[9])
+  if (voltage > LiPoTypicalChargeCurve[9])
   {
     return 9;
   }
-  while (voltage >  bat671723HS25C[charge])
+  while (voltage >  LiPoTypicalChargeCurve[charge])
   {
     charge++;
   }
@@ -197,6 +206,53 @@ float pmGetBatteryVoltageMax(void)
   return batteryVoltageMax;
 }
 
+/*
+ * When a module wants to register a callback to be called on shutdown they
+ * call pmRegisterGracefulShutdownCallback(graceful_shutdown_callback_t),
+ * with a function they which to be run at shutdown. We currently support
+ * GRACEFUL_SHUTDOWN_MAX_CALLBACKS number of callbacks to be registred.
+ */
+#define GRACEFUL_SHUTDOWN_MAX_CALLBACKS 5
+static int graceful_shutdown_callbacks_index;
+static graceful_shutdown_callback_t graceful_shutdown_callbacks[GRACEFUL_SHUTDOWN_MAX_CALLBACKS];
+
+/*
+ * Please take care in your callback, do not take to long time the nrf
+ * will not wait for you, it will shutdown.
+ */
+bool pmRegisterGracefulShutdownCallback(graceful_shutdown_callback_t cb)
+{
+  // To many registered allready! Increase limit if you think you are important
+  // enough!
+  if (graceful_shutdown_callbacks_index >= GRACEFUL_SHUTDOWN_MAX_CALLBACKS) {
+    return false;
+  }
+
+  graceful_shutdown_callbacks[graceful_shutdown_callbacks_index] = cb;
+  graceful_shutdown_callbacks_index += 1;
+
+  return true;
+}
+
+/*
+ * Iterate through all registered shutdown callbacks and call them one after
+ * the other, when all is done, send the ACK back to nrf to allow power off.
+ */
+static void pmGracefulShutdown()
+{
+  for (int i = 0; i < graceful_shutdown_callbacks_index; i++) {
+    graceful_shutdown_callback_t callback = graceful_shutdown_callbacks[i];
+
+    callback();
+  }
+
+  SyslinkPacket slp = {
+    .type = SYSLINK_PM_SHUTDOWN_ACK,
+  };
+
+  syslinkSendPacket(&slp);
+}
+
 void pmSyslinkUpdate(SyslinkPacket *slp)
 {
   if (slp->type == SYSLINK_PM_BATTERY_STATE) {
@@ -205,6 +261,8 @@ void pmSyslinkUpdate(SyslinkPacket *slp)
 #ifdef PM_SYSTLINK_INLCUDE_TEMP
     temp = pmSyslinkInfo.temp;
 #endif
+  } else if (slp->type == SYSLINK_PM_SHUTDOWN_REQUEST) {
+    workerSchedule(pmGracefulShutdown, NULL);
   }
 }
 
@@ -329,11 +387,11 @@ void pmTask(void *param)
     extBatteryCurrent = pmMeasureExtBatteryCurrent();
     batteryLevel = pmBatteryChargeFromVoltage(pmGetBatteryVoltage()) * 10;
 
-    if (pmGetBatteryVoltage() > PM_BAT_LOW_VOLTAGE)
+    if (pmGetBatteryVoltage() > batteryLowVoltage)
     {
       batteryLowTimeStamp = tickCount;
     }
-    if (pmGetBatteryVoltage() > PM_BAT_CRITICAL_LOW_VOLTAGE)
+    if (pmGetBatteryVoltage() > batteryCriticalLowVoltage)
     {
       batteryCriticalLowTimeStamp = tickCount;
     }
@@ -458,3 +516,19 @@ LOG_ADD_CORE(LOG_UINT8, batteryLevel, &batteryLevel)
 LOG_ADD(LOG_FLOAT, temp, &temp)
 #endif
 LOG_GROUP_STOP(pm)
+
+/**
+ * Power management parameters.
+ */
+PARAM_GROUP_START(pm)
+/**
+ * @brief At what voltage power management will indicate low battery.
+ */
+PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, lowVoltage, &batteryLowVoltage)
+/**
+ * @brief At what voltage power management will indicate critical low battery.
+ */
+PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, criticalLowVoltage, &batteryCriticalLowVoltage)
+
+PARAM_GROUP_STOP(pm)
+

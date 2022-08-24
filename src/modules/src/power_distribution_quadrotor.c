@@ -45,7 +45,6 @@ static bool motorSetEnable = false;
 motors_thrust_t motorPowerSet;
 
 void powerSet(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4) {
-  motorSetEnable = true;
   motorPowerSet.m1 = m1;
   motorPowerSet.m2 = m2;
   motorPowerSet.m3 = m3;
@@ -113,4 +112,13 @@ PARAM_GROUP_START(powerDist)
  * common value is between 3000 - 6000.
  */
 PARAM_ADD_CORE(PARAM_UINT32 | PARAM_PERSISTENT, idleThrust, &idleThrust)
+/**
+ * @brief Allow override of motor power commands (default: 0)
+ *
+ * This enables the use of powerSet() to set motor
+ * power commands directly, rather than through the
+ * use of control->thrust, control->roll, etc. This
+ * is done by the AE483 controller, for example.
+ */
+PARAM_ADD(PARAM_UINT8, motorSetEnable, &motorSetEnable)
 PARAM_GROUP_STOP(powerDist)

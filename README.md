@@ -1,5 +1,7 @@
 # AE483 Final Project: Modernization and Simplification of Crazyflie Build System
 
+## Team Members: Evher Aponte, Jamie Minard, Thinh Nguyen, Shyam Thyagarajan
+
 This repository is forked from the main Crazyflie Firmware Github source code and is a work in progress project that would allow for building with CMake. Currently, the user can run the standard CMake commands by doing the following in the main directory of the terminal:
 ```
 mkdir build

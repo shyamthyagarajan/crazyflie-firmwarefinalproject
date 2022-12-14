@@ -7,7 +7,7 @@ cd build
 cmake ..
 ```
 The errors regarding the KBuild system when configuring the Makefile from the generated CMake files occurs when running the make command, so currently, this issue still needs to be resolved.<br>
-In addition, the repository has been reduced from an original overall size of 17.6478 MB to a smaller size of 11.8618 MB. Tje goal of this forked repository is to maintain a simple drone flight when flashing the code, so files were evaluated to be deleted or kept from the original repository while allowing for a simple flight.
+In addition, the repository has been reduced from an original overall size of 17.6478 MB to a smaller size of 11.8618 MB. The goal of this forked repository is to maintain a simple drone flight when flashing the code, so files were evaluated to be deleted or kept from the original repository while allowing for a simple flight.
 
 # Original Crazyflie Firmware README
 

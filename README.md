@@ -25,7 +25,9 @@ If further issues persist, please visit the following link for setting up CMake 
 
 Here is the link to the video presentation for this project [here.](https://mediaspace.illinois.edu/media/t/1_z5m2tbaz)
 # Finalized List of Folders
-This list consists of the files/folders in the main directory that were not removed or altered for the purposes of this project.
+Many text files were removed as a simple drone flight would not be dependent on these. Test files were also evaluated as unnecessary for the purposes of flashing code that would allow for a simple drone flight. DOxygen was also utilized to determine a file's necessity or lack thereof, and the link to the DOxygen evaluation zip file is [here.](https://drive.google.com/drive/folders/1Cm2KlRedvo6F18QGsg6Stjh48T2JeX4x?usp=sharing)
+
+## This list consists of the files/folders in the main directory that were not removed or altered for the purposes of this project.
 * .github
 * .vscode
 * app_api
@@ -43,8 +45,8 @@ This list consists of the files/folders in the main directory that were not remo
 * Makefile
 * Rakefile
 * module.json
-<br>
-This list consists of the files/folders in the original main directory that were removed or partially removed.
+
+## This list consists of the files/folders in the original main directory that were removed or partially removed.
 * bin
 * docs
 * examples
@@ -52,11 +54,8 @@ This list consists of the files/folders in the original main directory that were
 * test_python
 * tools
 * RELEASE_CHECKLIST.md
-<br>
-This list consists of the files that were added/altered to this repository.
+
+## This list consists of the files that were added/altered to this repository.
 * CMakeLists.txt
 * src/CMakeLists.txt
 * README.md
-<br>
-In summation, many text files were removed as a simple drone flight would not be dependent on these. Test files were also evaluated as unnecessary for the purposes of flashing code that would allow for a simple drone flight. DOxygen was also utilized to determine a file's necessity or lack thereof, and the link to the DOxygen evaluation zip file is [here.](https://drive.google.com/drive/folders/1Cm2KlRedvo6F18QGsg6Stjh48T2JeX4x?usp=sharing)
-

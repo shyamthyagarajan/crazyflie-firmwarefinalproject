@@ -27,35 +27,35 @@ Here is the link to the video presentation for this project [here.](https://medi
 # Finalized List of Folders
 Many text files were removed as a simple drone flight would not be dependent on these. Test files were also evaluated as unnecessary for the purposes of flashing code that would allow for a simple drone flight. DOxygen was also utilized to determine a file's necessity or lack thereof, and the link to the DOxygen evaluation zip file is [here.](https://drive.google.com/drive/folders/1Cm2KlRedvo6F18QGsg6Stjh48T2JeX4x?usp=sharing)
 
-## This list consists of the files/folders in the main directory that were not removed or altered for the purposes of this project.
-* .github
-* .vscode
-* app_api
-* bindings
-* configs
-* generated/test
-* include/
-* src
-* vendor
-* .gitattributes
-* .gitignore
-* .gitmodules
-* Kconfig
-* LICENSE.txt
-* Makefile
-* Rakefile
-* module.json
+* This list consists of the files/folders in the main directory that were not removed or altered for the purposes of this project.
+    * .github
+    * .vscode
+    * app_api
+    * bindings
+    * configs
+    * generated/test
+    * include/
+    * src
+    * vendor
+    * .gitattributes
+    * .gitignore
+    * .gitmodules
+    * Kconfig
+    * LICENSE.txt
+    * Makefile
+    * Rakefile
+    * module.json
 
-## This list consists of the files/folders in the original main directory that were removed or partially removed.
-* bin
-* docs
-* examples
-* test
-* test_python
-* tools
-* RELEASE_CHECKLIST.md
+* This list consists of the files/folders in the original main directory that were removed or partially removed.
+    * bin
+    * docs
+    * examples
+    * test
+    * test_python
+    * tools
+    * RELEASE_CHECKLIST.md
 
-## This list consists of the files that were added/altered to this repository.
-* CMakeLists.txt
-* src/CMakeLists.txt
-* README.md
+* This list consists of the files that were added/altered to this repository.
+    * CMakeLists.txt
+    * src/CMakeLists.txt
+    * README.md
